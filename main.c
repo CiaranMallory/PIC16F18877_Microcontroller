@@ -1,0 +1,134 @@
+
+// PIC16F18877 Configuration Bit Settings
+
+// 'C' source line config statements
+
+// CONFIG1
+#pragma config FEXTOSC = HS     // External Oscillator mode selection bits (HS (crystal oscillator) above 4MHz; PFM set to high power)
+// RSTOSC = No Setting
+#pragma config CLKOUTEN = OFF   // Clock Out Enable bit (CLKOUT function is disabled; i/o or oscillator function on OSC2)
+#pragma config CSWEN = OFF      // Clock Switch Enable bit (The NOSC and NDIV bits cannot be changed by user software)
+#pragma config FCMEN = OFF      // Fail-Safe Clock Monitor Enable bit (FSCM timer disabled)
+
+// CONFIG2
+#pragma config MCLRE = ON       // Master Clear Enable bit (MCLR pin is Master Clear function)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config LPBOREN = OFF    // Low-Power BOR enable bit (ULPBOR disabled)
+#pragma config BOREN = OFF      // Brown-out reset enable bits (Brown-out reset disabled)
+#pragma config BORV = LO        // Brown-out Reset Voltage Selection (Brown-out Reset Voltage (VBOR) set to 1.9V on LF, and 2.45V on F Devices)
+#pragma config ZCD = OFF        // Zero-cross detect disable (Zero-cross detect circuit is disabled at POR.)
+#pragma config PPS1WAY = OFF    // Peripheral Pin Select one-way control (The PPSLOCK bit can be set and cleared repeatedly by software)
+#pragma config STVREN = OFF     // Stack Overflow/Underflow Reset Enable bit (Stack Overflow or Underflow will not cause a reset)
+
+// CONFIG3
+#pragma config WDTCPS = WDTCPS_31// WDT Period Select bits (Divider ratio 1:65536; software control of WDTPS)
+#pragma config WDTE = OFF       // WDT operating mode (WDT Disabled, SWDTEN is ignored)
+#pragma config WDTCWS = WDTCWS_7// WDT Window Select bits (window always open (100%); software control; keyed access not required)
+#pragma config WDTCCS = SC      // WDT input clock selector (Software Control)
+
+// CONFIG4
+#pragma config WRT = OFF        // UserNVM self-write protection bits (Write protection off)
+#pragma config SCANE = not_available// Scanner Enable bit (Scanner module is not available for use)
+#pragma config LVP = OFF        // Low Voltage Programming Enable bit (High Voltage on MCLR/Vpp must be used for programming)
+
+// CONFIG5
+#pragma config CP = OFF         // UserNVM Program memory code protection bit (Program Memory code protection disabled)
+#pragma config CPD = OFF        // DataNVM code protection bit (Data EEPROM code protection disabled)
+
+// #pragma config statements should precede project file includes.
+// Use project enums instead of #define for ON and OFF.
+
+#include <xc.h>
+
+#define _XTAL_FREQ 20e06 // Setting crystal frequency 
+
+#define Delay 100 // Delay macro
+
+// Macros for logic 1 and 0 to improve code readability
+#define ON 1
+#define OFF 0
+
+// Macros for switch1 and pushbuttons2 and 3
+#define SW1 RA2
+#define PB2 RE0
+#define PB3 RB0
+
+unsigned char get_PB2(void); // PB2 Debounce function declaration
+unsigned char get_PB3(void); // PB3 Debounce function declaration
+unsigned int count = 0; // Variable count
+
+void main(void) 
+{
+    ANSELA = 0x00;
+    TRISA = 0xFF;
+    ANSELB = 0x00;
+    TRISB = 0xFF;
+    TRISC = 0x00;
+    ANSELE = 0x00;
+    TRISE = 0xFF;
+    
+    LATC = 0x00;
+            
+    while(1) { // Loop continuously
+        
+        if(SW1 == ON && PB2 == ON){
+            // If SW and PB2 are ON simultaneously
+            while(get_PB2() == OFF); // Call Debounce function
+                LATC = count; // Set count to PORTC
+                count++; // Increment count
+            while(get_PB2() == ON); // Call Debounce function
+        }
+        
+        if(SW1 == ON && PB3 == ON){
+            // If SW1 and PB3 are ON simultaneously
+            while(get_PB3() == OFF); // Call Debounce function
+                LATC = count; // Set count to PORTC
+                count--; // Decrement count
+            while(get_PB3() == ON); // Call Debounce function
+        }
+        
+        if(SW1 == OFF) {
+            // If SW1 is off reset count
+            count = 0;
+        }
+    }
+}
+
+// Pushbutton2 monitor function
+// Debounce function definition
+unsigned char get_PB2(void){ // Create function key()
+    unsigned char count = 0; // Create & initialize variable count
+    unsigned char oldv, newv; // Create variables oldv and newv
+    
+    oldv = PB2; // Check initial status of switch
+    
+    while(count < 20){ // Check status of switch 20 times
+        newv = PB2; // Check status of switch on PB2
+        if(oldv == newv){ // Check if present state of switch = original state of switch
+            count++;      // Increment variable count
+        }else{            // If switch has changed state
+            count = 0;    // Reset count to 0 to restart the loop
+            oldv = newv;  // Update status of the switch
+        }
+    }
+    return oldv;
+}
+
+// Pushbutton3 monitor function
+unsigned char get_PB3(void){
+    unsigned char count = 0;
+    unsigned char oldv, newv;
+    
+    oldv = PB3;
+    
+    while(count < 20){
+        newv = PB3;
+        if(oldv == newv){
+            count++;
+        }else{
+            count = 0;
+            oldv = newv;
+        }
+    }
+    return oldv;
+}
